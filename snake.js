@@ -9,7 +9,7 @@ class Snake{
         this.x = 5;
         this.y = 5;
         this.dir = "down";
-        this.speed = 0.3;
+        this.speed = 1;
     }
 
     draw(){
@@ -22,6 +22,7 @@ class Snake{
     }
 
     move(){
+        //console.log(this.dir,this.x,this.y);
         let new_x = this.x;
         let new_y = this.y;
         switch (this.dir){
@@ -38,9 +39,11 @@ class Snake{
                 new_y += this.speed;
                 break;
         }
-        if (this.tempCheckColision(new_x,new_y)){
-            // TODO: allow it to move & change game state to gameover
-            
+        
+        // TODO: change it to proper collision detector
+        if (this.tempCheckColision(new_x,new_y)){ 
+            //TODO: even in case of collision allow it to move and change game state to gameover
+            console.log(new_x,new_y)
         }
         else{
             this.x = new_x;
@@ -75,19 +78,61 @@ class Snake{
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d');
 
-snake = new Snake();
+player = new Snake();
 
 
-animate()
+
 function background(){
     ctx.fillStyle = 'black'
     ctx.strokeStyle = 'black'
-    ctx.rect(GAMEX,GAMEY,SQUARESIZE * GAMEWIDTH, SQUARESIZE * GAMEHEIGHT);
+    ctx.rect(GAMEX,GAMEY,SQUARESIZE * GAMEWIDTH, SQUARESIZE * (GAMEHEIGHT));
     ctx.fill();
 }
-function animate(){
-    window.requestAnimationFrame(animate);
+
+
+let start, previousTimeStamp;
+
+function draw(){
     background();
-    snake.move();
-    snake.draw();
+    player.move();
+    player.draw();
 }
+
+function animate(){
+    timestamp = Date.now()
+    
+
+    if (previousTimeStamp == undefined){
+        previousTimeStamp = timestamp;
+        draw();
+    }
+    const elapsed = timestamp - previousTimeStamp;
+
+    if (elapsed > 200) { 
+        previousTimeStamp = timestamp
+        draw();
+    }
+    window.requestAnimationFrame(animate);
+    
+
+
+}
+animate()
+
+window.addEventListener('keydown', (e) => {
+    console.log(e);
+    switch(e.key){
+        case 'ArrowRight':
+            player.dir = 'right';
+            break;
+        case 'ArrowLeft':
+            player.dir = 'left';
+            break;
+        case 'ArrowUp':
+            player.dir = 'up';
+            break;
+        case 'ArrowDown':
+            player.dir = 'down';
+            break;
+    };
+});
