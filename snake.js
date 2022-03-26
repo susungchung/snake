@@ -6,11 +6,11 @@ const GAMEHEIGHT = 10;
 
 class Snake{
     constructor(){
-        this.x = 5;
+        this.x = 3;
         this.y = 5;
-        this.dir = "left";
+        this.dir = "right";
         this.speed = 1;
-        this.length = 8;
+        this.length = 4;
         this.turnPoints = [];
         this.turnLogged = false;
         this.body = []
@@ -23,27 +23,8 @@ class Snake{
         for (const block of this.body){
             ctx.rect(GAMEX + block.x * SQUARESIZE,GAMEY + block.y * SQUARESIZE,SQUARESIZE,SQUARESIZE);
             ctx.fill();
+            ctx.stroke();
         }
-
-        // let cur_x = this.x;
-        // let cur_y = this.y;
-        // let cur_dir = this.reverseDir(this.dir);
-        // let tp_index = 0;
-        // for (var i = 0;i<this.length;i++){
-        //     ctx.rect(GAMEX + cur_x * SQUARESIZE,GAMEY + cur_y * SQUARESIZE,SQUARESIZE,SQUARESIZE);
-        //     ctx.fill();
-        //     let new_cord = this.updateCordinate(cur_x,cur_y,cur_dir,1);
-        //     cur_x = new_cord.x;
-        //     cur_y = new_cord.y;
-        //     if (tp_index < this.turnPoints.length && cur_x == this.turnPoints[tp_index].x && cur_y == this.turnPoints[tp_index].y){
-        //         cur_dir = this.reverseDir(this.turnPoints[tp_index].dir);
-        //         tp_index += 1;
-        //     }
-        // }
-        // while(tp_index < this.turnPoints.length){
-        //     this.turnPoints.pop();
-        // }
-        ctx.stroke();
     }
 
     reverseDir(dir){
@@ -87,7 +68,7 @@ class Snake{
         this.y = new_cord.y;
     }
 
-    CheckColision(){
+    CheckCollision(){
         if (this.x < 0 || this.x > GAMEX-1){
             return true;
         }
@@ -137,8 +118,63 @@ class Snake{
     resetTurnLogged(){
         this.turnLogged = false;
     }
+
+    getCord(){
+        return {x:this.x,y:this.y};
+    }
+
+    getBody(){
+        return this.body;
+    }
+
+    increaseLength(){
+        this.length+=1;
+    }
 }
 
+class Apple{
+    constructor(){
+        this.x = 8;
+        this.y = 5;
+    }
+    draw(){
+        console.log(this.x,this.y)
+        ctx.beginPath();
+        ctx.fillStyle = 'red'
+        ctx.rect(GAMEX+this.x*SQUARESIZE,GAMEY+this.y*SQUARESIZE,SQUARESIZE,SQUARESIZE)
+        ctx.fill()
+    }
+    
+    appearNew(p_body){
+        let new_x,new_y;
+        let valid = false;
+        while (!valid){
+            valid = true;
+            new_x = Math.floor(Math.random() * GAMEWIDTH);
+            new_y = Math.floor(Math.random() * GAMEHEIGHT);
+            for (const block of p_body){
+                if (block.x == new_x && block.y == new_y){
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        this.x = new_x;
+        this.y = new_y;
+    }
+
+    checkEaten(p_cord,p_body){
+        let p_x = p_cord.x;
+        let p_y = p_cord.y;
+        if (this.x == p_x && this.y == p_y){
+            this.appearNew(p_body);
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+}
 
 
 
@@ -146,11 +182,10 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d');
 
 player = new Snake();
-
+a = new Apple();
 
 
 function background(){
-    console.log("background")
     ctx.fillStyle = 'black'
     ctx.strokeStyle = 'black'
     ctx.rect(GAMEX,GAMEY,SQUARESIZE * GAMEWIDTH, SQUARESIZE * (GAMEHEIGHT));
@@ -161,13 +196,21 @@ function background(){
 
 let start, previousTimeStamp;
 var gameOver = false;
+var ate = false;
+
 function moveAndDraw(){
     player.resetTurnLogged();
     player.move();
-    let collision = player.CheckColision();
+    let collision = player.CheckCollision();
     if (!collision){
         background();
         player.draw();
+
+        if (ate = a.checkEaten(player.getCord(),player.getBody())){
+            player.increaseLength();
+        }
+        console.log(ate);
+        a.draw();
     }
     return collision
 }
