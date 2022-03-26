@@ -12,31 +12,37 @@ class Snake{
         this.speed = 1;
         this.length = 8;
         this.turnPoints = [];
+        this.turnLogged = false;
+        this.body = []
     }
 
     draw(){
         ctx.beginPath();
         ctx.fillStyle = 'white';
-        //ctx.strokeStyle = 'transparent';
-        let cur_x = this.x;
-        let cur_y = this.y;
-        let cur_dir = this.reverseDir(this.dir);
-        let tp_index = 0;
-        for (var i = 0;i<this.length;i++){
-            ctx.rect(GAMEX + cur_x * SQUARESIZE,GAMEY + cur_y * SQUARESIZE,SQUARESIZE,SQUARESIZE);
+
+        for (const block of this.body){
+            ctx.rect(GAMEX + block.x * SQUARESIZE,GAMEY + block.y * SQUARESIZE,SQUARESIZE,SQUARESIZE);
             ctx.fill();
-            let new_cord = this.updateCordinate(cur_x,cur_y,cur_dir,1);
-            cur_x = new_cord.x;
-            cur_y = new_cord.y;
-            if (tp_index < this.turnPoints.length && cur_x == this.turnPoints[tp_index].x && cur_y == this.turnPoints[tp_index].y){
-                console.log(this.turnPoints[tp_index]);
-                cur_dir = this.reverseDir(this.turnPoints[tp_index].dir);
-                tp_index += 1;
-            }
         }
-        while(tp_index < this.turnPoints.length){
-            this.turnPoints.pop();
-        }
+
+        // let cur_x = this.x;
+        // let cur_y = this.y;
+        // let cur_dir = this.reverseDir(this.dir);
+        // let tp_index = 0;
+        // for (var i = 0;i<this.length;i++){
+        //     ctx.rect(GAMEX + cur_x * SQUARESIZE,GAMEY + cur_y * SQUARESIZE,SQUARESIZE,SQUARESIZE);
+        //     ctx.fill();
+        //     let new_cord = this.updateCordinate(cur_x,cur_y,cur_dir,1);
+        //     cur_x = new_cord.x;
+        //     cur_y = new_cord.y;
+        //     if (tp_index < this.turnPoints.length && cur_x == this.turnPoints[tp_index].x && cur_y == this.turnPoints[tp_index].y){
+        //         cur_dir = this.reverseDir(this.turnPoints[tp_index].dir);
+        //         tp_index += 1;
+        //     }
+        // }
+        // while(tp_index < this.turnPoints.length){
+        //     this.turnPoints.pop();
+        // }
         ctx.stroke();
     }
 
@@ -76,31 +82,9 @@ class Snake{
     }
 
     move(){
-        //console.log(this.dir,this.x,this.y);
-        let new_x = this.x;
-        let new_y = this.y;
-        let new_cord = this.updateCordinate(new_x,new_y,this.dir,this.speed);
-        new_x = new_cord.x;
-        new_y = new_cord.y;
-
-        // TODO: change it to proper collision detector
-        if (this.tempCheckColision(new_x,new_y)){ 
-            //TODO: even in case of collision allow it to move and change game state to gameover
-        }
-        else{
-            this.x = new_x;
-            this.y = new_y;
-        }
-    }
-
-    tempCheckColision(){
-        if (this.x <= 0 || this.x > GAMEX-2){
-            return true;
-        }
-        if (this.y <= 0 || this.y > GAMEY-2){
-            return true;
-        }
-        return false;
+        let new_cord = this.updateCordinate(this.x,this.y,this.dir,this.speed);
+        this.x = new_cord.x;
+        this.y = new_cord.y;
     }
 
     CheckColision(){
@@ -110,15 +94,48 @@ class Snake{
         if (this.y < 0 || this.y > GAMEY-1){
             return true;
         }
+
+        // fill in this.body as part of collision detection, and use it later to draw body
+        let cur_x = this.x;
+        let cur_y = this.y;
+        let cur_dir = this.reverseDir(this.dir);
+        let tp_index = 0;
+        this.body = [];
+        for (var i = 0;i<this.length;i++){
+            this.body.unshift({x:cur_x, y:cur_y});
+            let new_cord = this.updateCordinate(cur_x,cur_y,cur_dir,1);
+            cur_x = new_cord.x;
+            cur_y = new_cord.y;
+
+            if (cur_x == this.x && cur_y == this.y){
+                return true;
+            }
+
+            if (tp_index < this.turnPoints.length && cur_x == this.turnPoints[tp_index].x && cur_y == this.turnPoints[tp_index].y){
+                cur_dir = this.reverseDir(this.turnPoints[tp_index].dir);
+                tp_index += 1;
+            }
+        }
+        while(tp_index < this.turnPoints.length){
+            this.turnPoints.pop();
+        }
+
         return false;
+
     }
 
     logTurn(key){
-        if (this.dir != key && this.dir != this.reverseDir(key)){
-            
-            this.turnPoints.unshift( {x : this.x, y : this.y, dir : this.dir} )
-            this.dir = key
+        if (!this.turnLogged){
+            if (this.dir != key && this.dir != this.reverseDir(key)){
+                this.turnPoints.unshift( {x : this.x, y : this.y, dir : this.dir} );
+                this.dir = key;
+                this.turnLogged = true;
+            }
         }
+    }
+
+    resetTurnLogged(){
+        this.turnLogged = false;
     }
 }
 
@@ -133,44 +150,48 @@ player = new Snake();
 
 
 function background(){
+    console.log("background")
     ctx.fillStyle = 'black'
     ctx.strokeStyle = 'black'
     ctx.rect(GAMEX,GAMEY,SQUARESIZE * GAMEWIDTH, SQUARESIZE * (GAMEHEIGHT));
     ctx.fill();
+    ctx.stroke();
 }
 
 
 let start, previousTimeStamp;
-
-function draw(){
-    background();
+var gameOver = false;
+function moveAndDraw(){
+    player.resetTurnLogged();
     player.move();
-    player.draw();
+    let collision = player.CheckColision();
+    if (!collision){
+        background();
+        player.draw();
+    }
+    return collision
 }
 
 function animate(){
     timestamp = Date.now()
     
-
     if (previousTimeStamp == undefined){
         previousTimeStamp = timestamp;
-        draw();
+        gameOver = moveAndDraw();
     }
     const elapsed = timestamp - previousTimeStamp;
 
     if (elapsed > 200) { 
         previousTimeStamp = timestamp
-        draw();
+        gameOver = moveAndDraw();
     }
-    window.requestAnimationFrame(animate);
-    
-
-
+    if (!gameOver){
+        window.requestAnimationFrame(animate);
+    }
 }
 animate()
 
 window.addEventListener('keydown', (e) => {
-    console.log(e);
     switch(e.key){
         case 'ArrowRight':
             player.logTurn ('right');
